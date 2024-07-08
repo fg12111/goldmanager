@@ -152,7 +152,7 @@
                               "constraints": {
                                  "nullable": false,
                                  "foreignKeyName": "fk_item_unit",
-                                 "references": "unit(name)"
+                                 "references": "UNIT(name)"
                               }
                            }
                         }
