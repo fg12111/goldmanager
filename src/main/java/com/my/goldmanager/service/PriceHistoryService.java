@@ -1,5 +1,6 @@
 package com.my.goldmanager.service;
 
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -29,7 +30,7 @@ public class PriceHistoryService {
 	@Autowired
 	private ItemRepository itemRepository;
 
-	public Optional<PriceHistoryList> listAllForMaterial(String materialId) {
+	public Optional<PriceHistoryList> listAllForMaterial(String materialId, Date startDate, Date endDate) {
 		if (!materialRepository.existsById(materialId)) {
 			return Optional.empty();
 		}
@@ -37,7 +38,7 @@ public class PriceHistoryService {
 		PriceHistoryList result = new PriceHistoryList();
 		result.setPriceHistories(new LinkedList<>());
 		if (!items.isEmpty()) {
-			List<MaterialHistory> historyList = materialHistoryRepository.findByMaterial(materialId);
+			List<MaterialHistory> historyList = getMaterialHistory(materialId, startDate, endDate);
 			for (MaterialHistory history : historyList) {
 
 				PriceHistory priceHistory = new PriceHistory();
@@ -56,5 +57,19 @@ public class PriceHistoryService {
 			}
 		}
 		return Optional.of(result);
+	}
+
+	private List<MaterialHistory> getMaterialHistory(String materialId, Date startDate, Date endDate) {
+		if (startDate != null && endDate != null) {
+			return materialHistoryRepository.findByMaterialInRange(materialId, startDate, endDate);
+		}
+		if (startDate != null && endDate == null) {
+			return materialHistoryRepository.findByMaterialStartAt(materialId, startDate);
+		}
+		if (startDate == null && endDate != null) {
+			return materialHistoryRepository.findByMaterialEndAt(materialId, endDate);
+		}
+		return materialHistoryRepository.findByMaterial(materialId);
+
 	}
 }

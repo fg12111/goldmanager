@@ -9,7 +9,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -34,6 +33,7 @@ import com.my.goldmanager.entity.Material;
 import com.my.goldmanager.entity.MaterialHistory;
 import com.my.goldmanager.repository.MaterialHistoryRepository;
 import com.my.goldmanager.repository.MaterialRepository;
+import com.my.goldmanager.rest.entity.ErrorResponse;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -199,10 +199,14 @@ public class MaterialControllerSpringBootTest {
 		Date currentDate = new Date(timeStampNow - 5000);
 		created.setEntryDate(currentDate);
 
-		mockMvc.perform(put("/materials/" + created.getId()).contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(created))).andExpect(status().isBadRequest())
-				.andExpect(header().exists("fault"));
+		String body = mockMvc
+				.perform(put("/materials/" + created.getId()).contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(created)))
+				.andExpect(status().isBadRequest()).andReturn().getResponse().getContentAsString();
 
+		ErrorResponse resp = objectMapper.readValue(body, ErrorResponse.class);
+		assertEquals(400, resp.getStatus());
+		assertEquals("EntryDate must be after "+formatDateToUTC(createddate), resp.getMessage());
 		List<MaterialHistory> mh = materialHistoryRepository.findByMaterial(created.getId());
 
 		assertEquals(0, mh.size());

@@ -6,9 +6,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.security.SecureRandom;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -23,6 +26,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.my.goldmanager.entity.Item;
 import com.my.goldmanager.entity.ItemType;
@@ -34,6 +39,7 @@ import com.my.goldmanager.repository.ItemTypeRepository;
 import com.my.goldmanager.repository.MaterialHistoryRepository;
 import com.my.goldmanager.repository.MaterialRepository;
 import com.my.goldmanager.repository.UnitRepository;
+import com.my.goldmanager.rest.entity.ErrorResponse;
 import com.my.goldmanager.rest.entity.Price;
 import com.my.goldmanager.rest.entity.PriceHistory;
 import com.my.goldmanager.rest.entity.PriceHistoryList;
@@ -43,7 +49,10 @@ import com.my.goldmanager.rest.entity.PriceHistoryList;
 @ActiveProfiles("test")
 public class PriceHistoryControllerSpringBootTest {
 
-	private final SecureRandom rand = new SecureRandom();
+	private static final SecureRandom rand = new SecureRandom();
+
+	private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
+			.withZone(ZoneId.of("UTC"));
 	@Autowired
 	private UnitRepository unitRepository;
 
@@ -72,7 +81,7 @@ public class PriceHistoryControllerSpringBootTest {
 		unitRepository.deleteAll();
 		materialHistoryRepository.deleteAll();
 		materialRepository.deleteAll();
-		
+
 	}
 
 	@BeforeEach
@@ -144,6 +153,184 @@ public class PriceHistoryControllerSpringBootTest {
 	}
 
 	@Test
+	public void testListAllforMaterialWithStartdate() throws Exception {
+		List<Material> materials = materialRepository.findAll();
+		testForStartOrEndDate(materials, true);
+
+	}
+
+	@Test
+	public void testListAllforMaterialWithEndDate() throws Exception {
+		List<Material> materials = materialRepository.findAll();
+		testForStartOrEndDate(materials, false);
+
+	}
+	
+
+	@Test
+	public void testListAllforMaterialInRange() throws Exception {
+		List<Material> materials = materialRepository.findAll();
+		testForStartAndEndDate(materials);
+		testForStartAndEndDateReversed(materials);
+
+	}
+
+	@Test
+	public void testInvalidDate() throws Exception {
+		Material material = materialRepository.findAll().getFirst();
+		Date endDate = new Date();
+		Date startDate = new Date(System.currentTimeMillis() + 5000);
+
+		String body = mockMvc
+				.perform(get("/priceHistory/" + material.getId() + "?" + "startDate="
+						+ dateFormatter.format(startDate.toInstant()) + "&endDate="
+						+ dateFormatter.format(endDate.toInstant())))
+				.andExpect(status().isBadRequest()).andExpect(content().contentType(MediaType.APPLICATION_JSON))
+				.andReturn().getResponse().getContentAsString();
+		ErrorResponse response = objectMapper.readValue(body, ErrorResponse.class);
+		assertEquals(400, response.getStatus());
+		assertEquals("startDate must be before or equal to endDate", response.getMessage());
+	}
+
+	private void testForStartAndEndDate(List<Material> materials)
+			throws UnsupportedEncodingException, Exception, JsonProcessingException, JsonMappingException {
+		for (Material material : materials) {
+
+			List<MaterialHistory> expectedMhs = materialHistoryRepository.findByMaterial(material.getId()).reversed();
+		
+			for (int currentMHNo = 0; currentMHNo < expectedMhs.size(); currentMHNo++) {
+
+				MaterialHistory currentMH = expectedMhs.get(currentMHNo);
+				MaterialHistory lastMH = expectedMhs.getLast();
+				String body = mockMvc
+						.perform(get("/priceHistory/" + material.getId() + "?startDate=" + 
+							 dateFormatter.format(currentMH.getEntryDate().toInstant())+"&endDate="+dateFormatter.format(lastMH.getEntryDate().toInstant())))
+						.andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_JSON))
+						.andReturn().getResponse().getContentAsString();
+
+				PriceHistoryList priceHistoryList = objectMapper.readValue(body, PriceHistoryList.class);
+				assertEquals(expectedMhs.size() - currentMHNo, priceHistoryList.getPriceHistories().size());
+
+				List<Item> items = itemRepository.findByMaterialId(material.getId());
+				int current = 0;
+				List<PriceHistory> priceHistories = priceHistoryList.getPriceHistories().reversed();
+				
+				while (current < priceHistories.size()) {
+
+					MaterialHistory mh = expectedMhs.get(current + currentMHNo);
+					PriceHistory ph = priceHistories.get(current);
+
+					assertEquals(mh.getEntryDate().toInstant().toEpochMilli(), ph.getDate().toInstant().toEpochMilli());
+
+					float totalPrice = getPriceSummary(items, mh.getPrice());
+
+					assertNotNull(ph.getPriceList());
+					assertEquals(items.size(), ph.getPriceList().getPrices().size());
+					assertEquals(totalPrice, ph.getPriceList().getTotalPrize());
+					for (int currentPrice = 0; currentPrice < items.size(); currentPrice++) {
+						Price actualPrice = ph.getPriceList().getPrices().get(currentPrice);
+						assertEquals(getPrice(items.get(currentPrice), mh.getPrice()), actualPrice.getPrice());
+					}
+					current++;
+				}
+			}
+		}
+	}
+
+	private void testForStartAndEndDateReversed(List<Material> materials)
+			throws UnsupportedEncodingException, Exception, JsonProcessingException, JsonMappingException {
+		for (Material material : materials) {
+
+			List<MaterialHistory> expectedMhs = materialHistoryRepository.findByMaterial(material.getId()).reversed();
+		
+			for (int currentMHNo = 0; currentMHNo < expectedMhs.size(); currentMHNo++) {
+
+				MaterialHistory firstMH = expectedMhs.getFirst();
+				MaterialHistory currentMH = expectedMhs.get(currentMHNo);
+				String body = mockMvc
+						.perform(get("/priceHistory/" + material.getId() + "?startDate=" + 
+							 dateFormatter.format(firstMH.getEntryDate().toInstant())+"&endDate="+dateFormatter.format(currentMH.getEntryDate().toInstant())))
+						.andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_JSON))
+						.andReturn().getResponse().getContentAsString();
+
+				PriceHistoryList priceHistoryList = objectMapper.readValue(body, PriceHistoryList.class);
+				assertEquals(currentMHNo+1, priceHistoryList.getPriceHistories().size());
+
+				List<Item> items = itemRepository.findByMaterialId(material.getId());
+				int current = 0;
+				List<PriceHistory> priceHistories = priceHistoryList.getPriceHistories().reversed();
+				
+				while (current < priceHistories.size()) {
+
+					MaterialHistory mh = expectedMhs.get(current);
+					PriceHistory ph = priceHistories.get(current);
+
+					assertEquals(mh.getEntryDate().toInstant().toEpochMilli(), ph.getDate().toInstant().toEpochMilli());
+
+					float totalPrice = getPriceSummary(items, mh.getPrice());
+
+					assertNotNull(ph.getPriceList());
+					assertEquals(items.size(), ph.getPriceList().getPrices().size());
+					assertEquals(totalPrice, ph.getPriceList().getTotalPrize());
+					for (int currentPrice = 0; currentPrice < items.size(); currentPrice++) {
+						Price actualPrice = ph.getPriceList().getPrices().get(currentPrice);
+						assertEquals(getPrice(items.get(currentPrice), mh.getPrice()), actualPrice.getPrice());
+					}
+					current++;
+				}
+			}
+		}
+	}
+	private void testForStartOrEndDate(List<Material> materials, boolean byStartdate)
+			throws UnsupportedEncodingException, Exception, JsonProcessingException, JsonMappingException {
+		for (Material material : materials) {
+
+			List<MaterialHistory> expectedMhs = materialHistoryRepository.findByMaterial(material.getId());
+			if (!byStartdate) {
+				expectedMhs = expectedMhs.reversed();
+			}
+			for (int currentMHNo = 0; currentMHNo < expectedMhs.size(); currentMHNo++) {
+
+				MaterialHistory currentmh = expectedMhs.get(currentMHNo);
+
+				String body = mockMvc
+						.perform(get("/priceHistory/" + material.getId() + "?" + (byStartdate ? "startDate" : "endDate")
+								+ "=" + dateFormatter.format(currentmh.getEntryDate().toInstant())))
+						.andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_JSON))
+						.andReturn().getResponse().getContentAsString();
+
+				PriceHistoryList priceHistoryList = objectMapper.readValue(body, PriceHistoryList.class);
+				assertEquals(expectedMhs.size() - currentMHNo, priceHistoryList.getPriceHistories().size());
+
+				List<Item> items = itemRepository.findByMaterialId(material.getId());
+				int current = 0;
+				List<PriceHistory> priceHistories = priceHistoryList.getPriceHistories();
+				if (!byStartdate) {
+					priceHistories = priceHistories.reversed();
+				}
+				while (current < priceHistories.size()) {
+
+					MaterialHistory mh = expectedMhs.get(current + currentMHNo);
+					PriceHistory ph = priceHistories.get(current);
+
+					assertEquals(mh.getEntryDate().toInstant().toEpochMilli(), ph.getDate().toInstant().toEpochMilli());
+
+					float totalPrice = getPriceSummary(items, mh.getPrice());
+
+					assertNotNull(ph.getPriceList());
+					assertEquals(items.size(), ph.getPriceList().getPrices().size());
+					assertEquals(totalPrice, ph.getPriceList().getTotalPrize());
+					for (int currentPrice = 0; currentPrice < items.size(); currentPrice++) {
+						Price actualPrice = ph.getPriceList().getPrices().get(currentPrice);
+						assertEquals(getPrice(items.get(currentPrice), mh.getPrice()), actualPrice.getPrice());
+					}
+					current++;
+				}
+			}
+		}
+	}
+
+	@Test
 	public void testListAllforMaterial() throws Exception {
 		List<Material> materials = materialRepository.findAll();
 		for (Material material : materials) {
@@ -164,42 +351,44 @@ public class PriceHistoryControllerSpringBootTest {
 
 				MaterialHistory mh = expectedMhs.get(current);
 				PriceHistory ph = priceHistoryList.getPriceHistories().get(current);
-				
+
 				assertEquals(mh.getEntryDate().toInstant().toEpochMilli(), ph.getDate().toInstant().toEpochMilli());
-				
+
 				float totalPrice = getPriceSummary(items, mh.getPrice());
-	
+
 				assertNotNull(ph.getPriceList());
 				assertEquals(items.size(), ph.getPriceList().getPrices().size());
 				assertEquals(totalPrice, ph.getPriceList().getTotalPrize());
-				for(int currentPrice =0; currentPrice < items.size();currentPrice++) {
+				for (int currentPrice = 0; currentPrice < items.size(); currentPrice++) {
 					Price actualPrice = ph.getPriceList().getPrices().get(currentPrice);
-					assertEquals(getPrice(items.get(currentPrice), mh.getPrice()), actualPrice.getPrice());					
+					assertEquals(getPrice(items.get(currentPrice), mh.getPrice()), actualPrice.getPrice());
 				}
-				
-				
-				 
 				current++;
-
 			}
 		}
 
-		
+	}
+
+	@Test
+	public void testListAllforMaterialNotExisting() throws Exception {
+		mockMvc.perform(get("/priceHistory/notexist")).andExpect(status().isNotFound());
+
 	}
 
 	private float getPriceSummary(List<Item> items, float materialPrice) {
 		float result = 0;
 		for (Item item : items) {
-			result += getPrice(item,materialPrice);
+			result += getPrice(item, materialPrice);
 		}
 		return result;
 	}
 
-	private  float getPrice(Item item, float materialPrice) {
-		
-		BigDecimal price = new BigDecimal(item.getAmount() * item.getUnit().getFactor() * item.getItemType().getModifier()
-				* materialPrice).setScale(2, RoundingMode.HALF_DOWN);
+	private float getPrice(Item item, float materialPrice) {
+
+		BigDecimal price = new BigDecimal(
+				item.getAmount() * item.getUnit().getFactor() * item.getItemType().getModifier() * materialPrice)
+				.setScale(2, RoundingMode.HALF_DOWN);
 		return price.floatValue();
-		
+
 	}
 }
