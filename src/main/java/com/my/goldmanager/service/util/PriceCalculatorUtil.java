@@ -1,11 +1,11 @@
-package com.my.goldmanager.service;
+package com.my.goldmanager.service.util;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 import com.my.goldmanager.entity.Item;
 
-class PriceCalculatorUtil {
+public class PriceCalculatorUtil {
 
 	private PriceCalculatorUtil() {
 		//Static class

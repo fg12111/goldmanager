@@ -2,6 +2,7 @@ package com.my.goldmanager.service;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -10,21 +11,28 @@ import com.my.goldmanager.entity.Item;
 import com.my.goldmanager.entity.MaterialHistory;
 import com.my.goldmanager.repository.ItemRepository;
 import com.my.goldmanager.repository.MaterialHistoryRepository;
+import com.my.goldmanager.repository.MaterialRepository;
 import com.my.goldmanager.rest.entity.Price;
 import com.my.goldmanager.rest.entity.PriceHistory;
 import com.my.goldmanager.rest.entity.PriceHistoryList;
 import com.my.goldmanager.rest.entity.PriceList;
+import com.my.goldmanager.service.util.PriceCalculatorUtil;
 
 @Service
 
 public class PriceHistoryService {
 
 	@Autowired
+	private MaterialRepository materialRepository;
+	@Autowired
 	private MaterialHistoryRepository materialHistoryRepository;
 	@Autowired
 	private ItemRepository itemRepository;
 
-	public PriceHistoryList listAllForMaterial(String materialId) {
+	public Optional<PriceHistoryList> listAllForMaterial(String materialId) {
+		if (!materialRepository.existsById(materialId)) {
+			return Optional.empty();
+		}
 		List<Item> items = itemRepository.findByMaterialId(materialId);
 		PriceHistoryList result = new PriceHistoryList();
 		result.setPriceHistories(new LinkedList<>());
@@ -47,6 +55,6 @@ public class PriceHistoryService {
 				}
 			}
 		}
-		return result;
+		return Optional.of(result);
 	}
 }
