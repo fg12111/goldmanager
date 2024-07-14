@@ -25,6 +25,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mariadb://db:3306/mydatabase
       SPRING_DATASOURCE_USERNAME: myuser
       SPRING_DATASOURCE_PASSWORD: mypassword
+      APP_DEFAULT_USER: admin
+      APP_DEFAULT_PASSWORD: adminpassword!
     ports:
       - "8080:8080"
     depends_on:

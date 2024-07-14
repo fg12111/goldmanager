@@ -10,7 +10,7 @@ import lombok.Setter;
 /**
  * UserResponse
  */
-public class UserResponse {
+public class ListUserResponse {
  
 	@Getter
 	@Setter

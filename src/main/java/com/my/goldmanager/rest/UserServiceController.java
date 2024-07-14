@@ -20,7 +20,7 @@ import com.my.goldmanager.rest.request.CreateUserRequest;
 import com.my.goldmanager.rest.request.UpdateUserPasswordRequest;
 import com.my.goldmanager.rest.request.UpdateUserStatusRequest;
 import com.my.goldmanager.rest.response.ErrorResponse;
-import com.my.goldmanager.rest.response.UserResponse;
+import com.my.goldmanager.rest.response.ListUserResponse;
 import com.my.goldmanager.service.UserService;
 import com.my.goldmanager.service.exception.BadRequestException;
 import com.my.goldmanager.service.exception.ValidationException;
@@ -44,12 +44,12 @@ public class UserServiceController {
 
 	}
 
-	@PutMapping(path = "/{userId}")
+	@PutMapping(path = "/updatePassword/{userId}")
 	public ResponseEntity<Void> updateUserPassword(@PathVariable("userId") String userId,
-			@RequestBody UpdateUserPasswordRequest updateUserRequest) {
+			@RequestBody UpdateUserPasswordRequest updateUserPasswordRequest) {
 
 		try {
-			if (userService.updatePassword(userId, updateUserRequest.getNewPassword())) {
+			if (userService.updatePassword(userId, updateUserPasswordRequest.getNewPassword())) {
 				return ResponseEntity.noContent().build();
 			}
 		} catch (ValidationException e) {
@@ -58,7 +58,7 @@ public class UserServiceController {
 		return ResponseEntity.notFound().build();
 	}
 
-	@PutMapping(path = "/{userId}/setStatus")
+	@PutMapping(path = "/setStatus/{userId}")
 	public ResponseEntity<Void> updateUserUserStatus(@PathVariable("userId") String userId,
 			@RequestBody UpdateUserStatusRequest updateUserStatusRequest) {
 
@@ -70,8 +70,8 @@ public class UserServiceController {
 	}
 
 	@GetMapping
-	public ResponseEntity<UserResponse> listAll() {
-		UserResponse result = new UserResponse();
+	public ResponseEntity<ListUserResponse> listAll() {
+		ListUserResponse result = new ListUserResponse();
 		result.setUserInfos(new LinkedList<>());
 		userService.listAll().stream().forEach(u -> {
 			UserInfo userInfo = new UserInfo();

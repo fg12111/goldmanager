@@ -26,10 +26,10 @@ public class UserService {
 	 */
 	public void create(String username, String password) throws ValidationException {
 
-		if (username == null) {
+		if (username == null || username.isBlank()) {
 			throw new ValidationException("Username is mandatory.");
 		}
-		if (password == null) {
+		if (password == null || password.isBlank()) {
 			throw new ValidationException("Password is mandatory.");
 		}
 		if (userLoginRepository.existsById(username)) {
@@ -49,11 +49,11 @@ public class UserService {
 	 * @param username
 	 * @param newPassword
 	 * @return
-	 * @throws ValidationException 
+	 * @throws ValidationException
 	 */
 	public boolean updatePassword(String username, String newPassword) throws ValidationException {
 
-		if (username == null || newPassword == null) {
+		if (username == null || username.isBlank() || newPassword == null || newPassword.isBlank()) {
 			throw new ValidationException("Username and newPassword are mandatory");
 		}
 		Optional<UserLogin> userlogin = userLoginRepository.findById(username);
