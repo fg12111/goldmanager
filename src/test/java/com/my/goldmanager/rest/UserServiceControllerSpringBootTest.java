@@ -12,7 +12,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 import java.util.Optional;
 
-import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +22,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.my.goldmanager.encoder.SHA3_256HexEncoder;
 import com.my.goldmanager.entity.UserLogin;
 import com.my.goldmanager.repository.UserLoginRepository;
 import com.my.goldmanager.rest.request.CreateUserRequest;
@@ -35,7 +35,8 @@ import com.my.goldmanager.rest.response.ListUserResponse;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 public class UserServiceControllerSpringBootTest {
-
+	private final SHA3_256HexEncoder passwordEncoder = new SHA3_256HexEncoder();
+	
 	@Autowired
 	private UserLoginRepository userLoginRepository;
 	@Autowired
@@ -63,7 +64,7 @@ public class UserServiceControllerSpringBootTest {
 		UserLogin result = optional.get();
 		assertEquals(createUserRequest.getUsername(), result.getUserid());
 		assertTrue(result.isActive());
-		assertEquals(DigestUtils.sha256Hex(createUserRequest.getPassword()), result.getPassword());
+		assertEquals(passwordEncoder.encode(createUserRequest.getPassword()), result.getPassword());
 	}
 
 	@Test
@@ -88,7 +89,7 @@ public class UserServiceControllerSpringBootTest {
 		UserLogin result = optional.get();
 		assertEquals(userLogin.getUserid(), result.getUserid());
 		assertTrue(result.isActive());
-		assertEquals(DigestUtils.sha256Hex(updateUserPasswordRequest.getNewPassword()), result.getPassword());
+		assertEquals(passwordEncoder.encode(updateUserPasswordRequest.getNewPassword()), result.getPassword());
 	}
 
 	@Test

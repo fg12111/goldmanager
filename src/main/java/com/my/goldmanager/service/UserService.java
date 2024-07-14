@@ -3,16 +3,18 @@ package com.my.goldmanager.service;
 import java.util.List;
 import java.util.Optional;
 
-import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.my.goldmanager.encoder.SHA3_256HexEncoder;
 import com.my.goldmanager.entity.UserLogin;
 import com.my.goldmanager.repository.UserLoginRepository;
 import com.my.goldmanager.service.exception.ValidationException;
 
 @Service
 public class UserService {
+
+	private final SHA3_256HexEncoder passwordEncoder = new SHA3_256HexEncoder();
 
 	@Autowired
 	UserLoginRepository userLoginRepository;
@@ -37,7 +39,7 @@ public class UserService {
 		}
 		UserLogin userLogin = new UserLogin();
 		userLogin.setActive(true);
-		userLogin.setPassword(DigestUtils.sha256Hex(password));
+		userLogin.setPassword(passwordEncoder.encode(password));
 		userLogin.setUserid(username);
 		userLoginRepository.save(userLogin);
 
@@ -59,7 +61,7 @@ public class UserService {
 		Optional<UserLogin> userlogin = userLoginRepository.findById(username);
 		if (userlogin.isPresent()) {
 			UserLogin login = userlogin.get();
-			login.setPassword(DigestUtils.sha256Hex(newPassword));
+			login.setPassword(passwordEncoder.encode(newPassword));
 			userLoginRepository.save(login);
 			return true;
 		}
