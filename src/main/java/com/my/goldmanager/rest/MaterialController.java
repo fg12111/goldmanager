@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.WebRequest;
 
 import com.my.goldmanager.entity.Material;
-import com.my.goldmanager.rest.entity.ErrorResponse;
+import com.my.goldmanager.rest.response.ErrorResponse;
 import com.my.goldmanager.service.MaterialService;
 import com.my.goldmanager.service.exception.BadRequestException;
 import com.my.goldmanager.service.exception.ValidationException;

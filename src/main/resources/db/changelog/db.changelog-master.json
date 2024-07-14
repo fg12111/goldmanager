@@ -210,6 +210,37 @@
                      "tableName": "MATERIAL_HISTORY"
                   }
                },
+               {
+                  "createTable": {
+                     "columns": [
+                        {
+                           "column": {
+                              "name": "userid",
+                              "type": "varchar(255)",
+                              "constraints": {
+                                 "primaryKey": true
+                              }
+                           }
+                        },
+                        {
+                           "column": {
+                              "name": "password",
+                              "type": "varchar(255)",
+                              "constraints": {
+                                 "nullable": false
+                              }
+                           }
+                        },
+                        {
+                           "column": {
+                              "name": "active",
+                              "type": "boolean"
+                           }
+                        }                     ],
+                     "remarks": "User logins",
+                     "tableName": "USER_LOGIN"
+                  }
+               },
                "addForeignKeyConstraint": {
                   "baseTableName": "MATERIAL_HISTORY",
                   "baseColumnNames": "materialID",

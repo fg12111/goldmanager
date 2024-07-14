@@ -16,8 +16,7 @@ import lombok.Setter;
 @Table(name = "ITEM")
 public class Item {
 
-	@Id
-	
+	@Id	
 	@Getter
 	@Setter
 	private String id;

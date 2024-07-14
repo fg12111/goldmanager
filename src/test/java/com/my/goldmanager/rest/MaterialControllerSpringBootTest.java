@@ -33,7 +33,7 @@ import com.my.goldmanager.entity.Material;
 import com.my.goldmanager.entity.MaterialHistory;
 import com.my.goldmanager.repository.MaterialHistoryRepository;
 import com.my.goldmanager.repository.MaterialRepository;
-import com.my.goldmanager.rest.entity.ErrorResponse;
+import com.my.goldmanager.rest.response.ErrorResponse;
 
 @SpringBootTest
 @AutoConfigureMockMvc

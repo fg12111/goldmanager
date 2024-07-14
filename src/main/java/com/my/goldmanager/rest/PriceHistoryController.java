@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.WebRequest;
 
-import com.my.goldmanager.rest.entity.ErrorResponse;
 import com.my.goldmanager.rest.entity.PriceHistoryList;
+import com.my.goldmanager.rest.response.ErrorResponse;
 import com.my.goldmanager.service.PriceHistoryService;
 import com.my.goldmanager.service.exception.BadRequestException;
 

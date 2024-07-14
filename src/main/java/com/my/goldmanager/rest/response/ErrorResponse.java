@@ -1,4 +1,4 @@
-package com.my.goldmanager.rest.entity;
+package com.my.goldmanager.rest.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
