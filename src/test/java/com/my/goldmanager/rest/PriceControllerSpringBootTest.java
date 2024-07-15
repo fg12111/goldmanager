@@ -2,7 +2,6 @@ package com.my.goldmanager.rest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -34,11 +33,19 @@ import com.my.goldmanager.repository.UnitRepository;
 import com.my.goldmanager.rest.entity.Price;
 import com.my.goldmanager.rest.entity.PriceGroupMap;
 import com.my.goldmanager.rest.entity.PriceList;
+import com.my.goldmanager.service.AuthenticationService;
+import com.my.goldmanager.service.UserService;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 public class PriceControllerSpringBootTest {
+
+	@Autowired
+	private UserService userService;
+
+	@Autowired
+	private AuthenticationService authenticationService;
 
 	@Autowired
 	private ItemTypeRepository itemTypeRepository;
@@ -67,6 +74,8 @@ public class PriceControllerSpringBootTest {
 
 	@BeforeEach
 	public void setUp() {
+		TestHTTPClient.setup(userService, authenticationService);
+
 		Material m = new Material();
 		m.setName("Gold");
 		m.setPrice(2000);
@@ -156,7 +165,7 @@ public class PriceControllerSpringBootTest {
 	@Test
 	void testListAll() throws UnsupportedEncodingException, Exception {
 
-		String body = mockMvc.perform(get("/prices")).andExpect(status().isOk())
+		String body = mockMvc.perform(TestHTTPClient.doGet("/prices")).andExpect(status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse()
 				.getContentAsString();
 
@@ -178,7 +187,7 @@ public class PriceControllerSpringBootTest {
 	@Test
 	void testGroupByItemtype() throws UnsupportedEncodingException, Exception {
 
-		String body = mockMvc.perform(get("/prices/groupBy/itemType")).andExpect(status().isOk())
+		String body = mockMvc.perform(TestHTTPClient.doGet("/prices/groupBy/itemType")).andExpect(status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse()
 				.getContentAsString();
 
@@ -208,7 +217,7 @@ public class PriceControllerSpringBootTest {
 	@Test
 	void testGroupByMaterial() throws UnsupportedEncodingException, Exception {
 
-		String body = mockMvc.perform(get("/prices/groupBy/material")).andExpect(status().isOk())
+		String body = mockMvc.perform(TestHTTPClient.doGet("/prices/groupBy/material")).andExpect(status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse()
 				.getContentAsString();
 
@@ -248,7 +257,7 @@ public class PriceControllerSpringBootTest {
 	@Test
 	void testlistPricesForMaterialGold() throws UnsupportedEncodingException, Exception {
 
-		String body = mockMvc.perform(get("/prices/material/" + gold.getId())).andExpect(status().isOk())
+		String body = mockMvc.perform(TestHTTPClient.doGet("/prices/material/" + gold.getId())).andExpect(status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse()
 				.getContentAsString();
 
@@ -273,7 +282,7 @@ public class PriceControllerSpringBootTest {
 	@Test
 	void testlistPricesForMaterialSilver() throws UnsupportedEncodingException, Exception {
 
-		String body = mockMvc.perform(get("/prices/material/" + silver.getId())).andExpect(status().isOk())
+		String body = mockMvc.perform(TestHTTPClient.doGet("/prices/material/" + silver.getId())).andExpect(status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse()
 				.getContentAsString();
 
@@ -298,7 +307,7 @@ public class PriceControllerSpringBootTest {
 	@Test
 	void testlistPricesForMaterialUnknown() throws UnsupportedEncodingException, Exception {
 
-		mockMvc.perform(get("/prices/material/unknown")).andExpect(status().isNotFound());
+		mockMvc.perform(TestHTTPClient.doGet("/prices/material/unknown")).andExpect(status().isNotFound());
 	}
 
 	@Test
@@ -306,7 +315,7 @@ public class PriceControllerSpringBootTest {
 
 		for (int current = 0; current < items.size(); current++) {
 			Item expected = items.get(current);
-			String body = mockMvc.perform(get("/prices/item/" + expected.getId())).andExpect(status().isOk())
+			String body = mockMvc.perform(TestHTTPClient.doGet("/prices/item/" + expected.getId())).andExpect(status().isOk())
 					.andExpect(content().contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse()
 					.getContentAsString();
 
@@ -317,7 +326,7 @@ public class PriceControllerSpringBootTest {
 			assertEquals(expected.getName(), result.getItem().getName());
 			assertEquals(expected.getId(), result.getItem().getId());
 		}
-		mockMvc.perform(get("/prices/item/notexistent")).andExpect(status().isNotFound());
+		mockMvc.perform(TestHTTPClient.doGet("/prices/item/notexistent")).andExpect(status().isNotFound());
 
 	}
 
@@ -339,8 +348,9 @@ public class PriceControllerSpringBootTest {
 	}
 
 	private float getPrice(Item item) {
-		BigDecimal price = new BigDecimal(item.getAmount() * item.getUnit().getFactor() * item.getItemType().getModifier()
-				* item.getItemType().getMaterial().getPrice()).setScale(2, RoundingMode.HALF_DOWN);
+		BigDecimal price = new BigDecimal(item.getAmount() * item.getUnit().getFactor()
+				* item.getItemType().getModifier() * item.getItemType().getMaterial().getPrice())
+				.setScale(2, RoundingMode.HALF_DOWN);
 		return price.floatValue();
 	}
 
@@ -353,6 +363,7 @@ public class PriceControllerSpringBootTest {
 		gold = null;
 		silver = null;
 		items.clear();
+		TestHTTPClient.cleanup();
 	}
 
 }

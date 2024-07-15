@@ -11,13 +11,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.my.goldmanager.rest.request.AuthRequest;
-import com.my.goldmanager.service.JWTAuthenticationService;
+import com.my.goldmanager.service.AuthenticationService;
 
 @RestController
 public class AuthController {
 
 	@Autowired
-	JWTAuthenticationService authenticationService;
+	AuthenticationService authenticationService;
 
 	@PostMapping("/login")
 	public ResponseEntity<String> login(@RequestBody AuthRequest authRequest) {
@@ -30,7 +30,7 @@ public class AuthController {
 		}
 	}
 
-	@GetMapping("/logout")
+	@GetMapping("/logoutuser")
 	public ResponseEntity<Void> logout() {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 

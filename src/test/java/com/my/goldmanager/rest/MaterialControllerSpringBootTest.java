@@ -4,10 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -18,6 +14,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -34,11 +31,19 @@ import com.my.goldmanager.entity.MaterialHistory;
 import com.my.goldmanager.repository.MaterialHistoryRepository;
 import com.my.goldmanager.repository.MaterialRepository;
 import com.my.goldmanager.rest.response.ErrorResponse;
+import com.my.goldmanager.service.AuthenticationService;
+import com.my.goldmanager.service.UserService;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 public class MaterialControllerSpringBootTest {
+	@Autowired
+	private UserService userService;
+
+	@Autowired
+	private AuthenticationService authenticationService;
+
 	@Autowired
 	private MaterialRepository materialRepository;
 
@@ -51,10 +56,16 @@ public class MaterialControllerSpringBootTest {
 	@Autowired
 	private ObjectMapper objectMapper;
 
+	@BeforeEach
+	public void setUp() {
+		TestHTTPClient.setup(userService, authenticationService);
+	}
+
 	@AfterEach
 	public void cleanUp() {
 		materialHistoryRepository.deleteAll();
 		materialRepository.deleteAll();
+		TestHTTPClient.cleanup();
 	}
 
 	@Test
@@ -70,7 +81,7 @@ public class MaterialControllerSpringBootTest {
 		silver.setPrice(50.1f);
 		materialRepository.save(silver);
 
-		String body = mockMvc.perform(get("/materials")).andExpect(status().isOk())
+		String body = mockMvc.perform(TestHTTPClient.doGet("/materials")).andExpect(status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse()
 				.getContentAsString();
 
@@ -98,7 +109,7 @@ public class MaterialControllerSpringBootTest {
 		gold.setEntryDate(new Date());
 
 		gold = materialRepository.save(gold);
-		mockMvc.perform(get("/materials/" + gold.getId())).andExpect(status().isOk())
+		mockMvc.perform(TestHTTPClient.doGet("/materials/" + gold.getId())).andExpect(status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON)).andExpect(status().isOk())
 				.andExpect(jsonPath("$.name").value("gold")).andExpect(jsonPath("$.price").value(100.1f))
 				.andExpect(jsonPath("$.entryDate").value(formatDateToUTC(gold.getEntryDate())));
@@ -107,7 +118,7 @@ public class MaterialControllerSpringBootTest {
 
 	@Test
 	public void testGetByIdNotFound() throws Exception {
-		mockMvc.perform(get("/materials/unknownid")).andExpect(status().isNotFound());
+		mockMvc.perform(TestHTTPClient.doGet("/materials/unknownid")).andExpect(status().isNotFound());
 	}
 
 	@Test
@@ -115,7 +126,7 @@ public class MaterialControllerSpringBootTest {
 		Material material = new Material();
 		material.setName("gold");
 		material.setPrice(100.1f);
-		mockMvc.perform(post("/materials").contentType(MediaType.APPLICATION_JSON)
+		mockMvc.perform(TestHTTPClient.doPost("/materials").contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(material))).andExpect(status().isCreated())
 				.andExpect(jsonPath("$.name").value("gold")).andExpect(jsonPath("$.price").value(100.1f));
 	}
@@ -127,11 +138,11 @@ public class MaterialControllerSpringBootTest {
 		material.setPrice(100.1f);
 		material = materialRepository.save(material);
 
-		mockMvc.perform(delete("/materials/{id}", material.getId())).andExpect(status().isNoContent());
+		mockMvc.perform(TestHTTPClient.doDelete("/materials/" + material.getId())).andExpect(status().isNoContent());
 
 		assertFalse(materialRepository.existsById(material.getId()));
 
-		mockMvc.perform(delete("/materials/{id}", material.getId())).andExpect(status().isNotFound());
+		mockMvc.perform(TestHTTPClient.doDelete("/materials/" + material.getId())).andExpect(status().isNotFound());
 
 	}
 
@@ -149,11 +160,11 @@ public class MaterialControllerSpringBootTest {
 
 		materialHistoryRepository.save(mh);
 
-		mockMvc.perform(delete("/materials/{id}", material.getId())).andExpect(status().isNoContent());
+		mockMvc.perform(TestHTTPClient.doDelete("/materials/" + material.getId())).andExpect(status().isNoContent());
 
 		assertFalse(materialRepository.existsById(material.getId()));
 
-		mockMvc.perform(delete("/materials/{id}", material.getId())).andExpect(status().isNotFound());
+		mockMvc.perform(TestHTTPClient.doDelete("/materials/" + material.getId())).andExpect(status().isNotFound());
 
 	}
 
@@ -170,7 +181,7 @@ public class MaterialControllerSpringBootTest {
 		created.setPrice(200);
 		created.setEntryDate(new Date(System.currentTimeMillis() + 1000));
 
-		mockMvc.perform(put("/materials/" + created.getId()).contentType(MediaType.APPLICATION_JSON)
+		mockMvc.perform(TestHTTPClient.doPut("/materials/" + created.getId()).contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(created))).andExpect(status().isOk())
 				.andExpect(jsonPath("$.name").value("gold")).andExpect(jsonPath("$.price").value(200))
 				.andExpect(jsonPath("$.entryDate").value(formatDateToUTC(created.getEntryDate())));
@@ -200,13 +211,13 @@ public class MaterialControllerSpringBootTest {
 		created.setEntryDate(currentDate);
 
 		String body = mockMvc
-				.perform(put("/materials/" + created.getId()).contentType(MediaType.APPLICATION_JSON)
+				.perform(TestHTTPClient.doPut("/materials/" + created.getId()).contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(created)))
 				.andExpect(status().isBadRequest()).andReturn().getResponse().getContentAsString();
 
 		ErrorResponse resp = objectMapper.readValue(body, ErrorResponse.class);
 		assertEquals(400, resp.getStatus());
-		assertEquals("EntryDate must be after "+formatDateToUTC(createddate), resp.getMessage());
+		assertEquals("EntryDate must be after " + formatDateToUTC(createddate), resp.getMessage());
 		List<MaterialHistory> mh = materialHistoryRepository.findByMaterial(created.getId());
 
 		assertEquals(0, mh.size());
@@ -227,7 +238,7 @@ public class MaterialControllerSpringBootTest {
 		Date currentDate = new Date(System.currentTimeMillis());
 		created.setEntryDate(null);
 
-		mockMvc.perform(put("/materials/" + created.getId()).contentType(MediaType.APPLICATION_JSON)
+		mockMvc.perform(TestHTTPClient.doPut("/materials/" + created.getId()).contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(created))).andExpect(status().isOk())
 				.andExpect(jsonPath("$.name").value("gold")).andExpect(jsonPath("$.price").value(200));
 

@@ -3,15 +3,12 @@ package com.my.goldmanager.rest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -25,11 +22,20 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.my.goldmanager.entity.Unit;
 import com.my.goldmanager.repository.UnitRepository;
+import com.my.goldmanager.service.AuthenticationService;
+import com.my.goldmanager.service.UserService;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 public class UnitControllerSpringBootTest {
+
+	@Autowired
+	private UserService userService;
+
+	@Autowired
+	private AuthenticationService authenticationService;
+
 	@Autowired
 	private UnitRepository unitRepository;
 
@@ -39,9 +45,15 @@ public class UnitControllerSpringBootTest {
 	@Autowired
 	private ObjectMapper objectMapper;
 
+	@BeforeEach
+	public void setup() {
+		TestHTTPClient.setup(userService, authenticationService);
+	}
+
 	@AfterEach
 	public void cleanUp() {
 		unitRepository.deleteAll();
+		TestHTTPClient.cleanup();
 	}
 
 	@Test
@@ -56,7 +68,7 @@ public class UnitControllerSpringBootTest {
 		oz.setFactor(1.0f);
 		unitRepository.save(oz);
 
-		String body = mockMvc.perform(get("/units")).andExpect(status().isOk())
+		String body = mockMvc.perform(TestHTTPClient.doGet("/units")).andExpect(status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse()
 				.getContentAsString();
 
@@ -82,7 +94,7 @@ public class UnitControllerSpringBootTest {
 		gramm.setName("gramm");
 		gramm.setFactor(1.0f / 31.1034768f);
 		mockMvc.perform(
-				post("/units").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(gramm)))
+				TestHTTPClient.doPost("/units").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(gramm)))
 				.andExpect(status().isCreated()).andExpect(jsonPath("$.name").value("gramm"))
 				.andExpect(jsonPath("$.factor").value(gramm.getFactor()));
 	}
@@ -96,7 +108,7 @@ public class UnitControllerSpringBootTest {
 		Unit created = unitRepository.save(gramm);
 		created.setFactor(0.5f);
 
-		mockMvc.perform(put("/units/" + created.getName()).contentType(MediaType.APPLICATION_JSON)
+		mockMvc.perform(TestHTTPClient.doPut("/units/" + created.getName()).contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(created))).andExpect(status().isOk())
 				.andExpect(jsonPath("$.name").value("gramm")).andExpect(jsonPath("$.factor").value(0.5));
 
@@ -108,11 +120,11 @@ public class UnitControllerSpringBootTest {
 		unit.setName("OZ");
 		unit.setFactor(1);
 		unitRepository.save(unit);
-		mockMvc.perform(delete("/units/{id}", unit.getName())).andExpect(status().isNoContent());
+		mockMvc.perform(TestHTTPClient.doDelete("/units/"+ unit.getName())).andExpect(status().isNoContent());
 
 		assertFalse(unitRepository.existsById(unit.getName()));
 
-		mockMvc.perform(delete("/units/{id}", unit.getName())).andExpect(status().isNotFound());
+		mockMvc.perform(TestHTTPClient.doDelete("/units/"+ unit.getName())).andExpect(status().isNotFound());
 
 	}
 

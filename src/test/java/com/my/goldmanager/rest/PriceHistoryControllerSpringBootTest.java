@@ -2,7 +2,6 @@ package com.my.goldmanager.rest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -43,6 +42,8 @@ import com.my.goldmanager.rest.entity.Price;
 import com.my.goldmanager.rest.entity.PriceHistory;
 import com.my.goldmanager.rest.entity.PriceHistoryList;
 import com.my.goldmanager.rest.response.ErrorResponse;
+import com.my.goldmanager.service.AuthenticationService;
+import com.my.goldmanager.service.UserService;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -53,6 +54,14 @@ public class PriceHistoryControllerSpringBootTest {
 
 	private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
 			.withZone(ZoneId.of("UTC"));
+	
+	@Autowired
+	private UserService userService;
+
+	@Autowired
+	private AuthenticationService authenticationService;
+
+	
 	@Autowired
 	private UnitRepository unitRepository;
 
@@ -81,12 +90,14 @@ public class PriceHistoryControllerSpringBootTest {
 		unitRepository.deleteAll();
 		materialHistoryRepository.deleteAll();
 		materialRepository.deleteAll();
-
+		TestHTTPClient.cleanup();
 	}
 
 	@BeforeEach
 	public void setUp() {
 
+		TestHTTPClient.setup(userService, authenticationService);
+		
 		Unit oz = new Unit();
 
 		oz.setFactor(1.0f);
@@ -182,7 +193,7 @@ public class PriceHistoryControllerSpringBootTest {
 		Date startDate = new Date(System.currentTimeMillis() + 5000);
 
 		String body = mockMvc
-				.perform(get("/priceHistory/" + material.getId() + "?" + "startDate="
+				.perform(TestHTTPClient.doGet("/priceHistory/" + material.getId() + "?" + "startDate="
 						+ dateFormatter.format(startDate.toInstant()) + "&endDate="
 						+ dateFormatter.format(endDate.toInstant())))
 				.andExpect(status().isBadRequest()).andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -203,7 +214,7 @@ public class PriceHistoryControllerSpringBootTest {
 				MaterialHistory currentMH = expectedMhs.get(currentMHNo);
 				MaterialHistory lastMH = expectedMhs.getLast();
 				String body = mockMvc
-						.perform(get("/priceHistory/" + material.getId() + "?startDate=" + 
+						.perform(TestHTTPClient.doGet("/priceHistory/" + material.getId() + "?startDate=" + 
 							 dateFormatter.format(currentMH.getEntryDate().toInstant())+"&endDate="+dateFormatter.format(lastMH.getEntryDate().toInstant())))
 						.andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_JSON))
 						.andReturn().getResponse().getContentAsString();
@@ -248,7 +259,7 @@ public class PriceHistoryControllerSpringBootTest {
 				MaterialHistory firstMH = expectedMhs.getFirst();
 				MaterialHistory currentMH = expectedMhs.get(currentMHNo);
 				String body = mockMvc
-						.perform(get("/priceHistory/" + material.getId() + "?startDate=" + 
+						.perform(TestHTTPClient.doGet("/priceHistory/" + material.getId() + "?startDate=" + 
 							 dateFormatter.format(firstMH.getEntryDate().toInstant())+"&endDate="+dateFormatter.format(currentMH.getEntryDate().toInstant())))
 						.andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_JSON))
 						.andReturn().getResponse().getContentAsString();
@@ -294,7 +305,7 @@ public class PriceHistoryControllerSpringBootTest {
 				MaterialHistory currentmh = expectedMhs.get(currentMHNo);
 
 				String body = mockMvc
-						.perform(get("/priceHistory/" + material.getId() + "?" + (byStartdate ? "startDate" : "endDate")
+						.perform(TestHTTPClient.doGet("/priceHistory/" + material.getId() + "?" + (byStartdate ? "startDate" : "endDate")
 								+ "=" + dateFormatter.format(currentmh.getEntryDate().toInstant())))
 						.andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_JSON))
 						.andReturn().getResponse().getContentAsString();
@@ -335,7 +346,7 @@ public class PriceHistoryControllerSpringBootTest {
 		List<Material> materials = materialRepository.findAll();
 		for (Material material : materials) {
 
-			String body = mockMvc.perform(get("/priceHistory/" + material.getId())).andExpect(status().isOk())
+			String body = mockMvc.perform(TestHTTPClient.doGet("/priceHistory/" + material.getId())).andExpect(status().isOk())
 					.andExpect(content().contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse()
 					.getContentAsString();
 
@@ -371,7 +382,7 @@ public class PriceHistoryControllerSpringBootTest {
 
 	@Test
 	public void testListAllforMaterialNotExisting() throws Exception {
-		mockMvc.perform(get("/priceHistory/notexist")).andExpect(status().isNotFound());
+		mockMvc.perform(TestHTTPClient.doGet("/priceHistory/notexist")).andExpect(status().isNotFound());
 
 	}
 

@@ -3,8 +3,6 @@ package com.my.goldmanager.rest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -28,12 +26,20 @@ import com.my.goldmanager.entity.Material;
 import com.my.goldmanager.entity.MaterialHistory;
 import com.my.goldmanager.repository.MaterialHistoryRepository;
 import com.my.goldmanager.repository.MaterialRepository;
+import com.my.goldmanager.service.AuthenticationService;
+import com.my.goldmanager.service.UserService;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 public class MaterialHistoryControllerSpringBootTest {
 
+	@Autowired
+	private UserService userService;
+
+	@Autowired
+	private AuthenticationService authenticationService;
+	
 	@Autowired
 	private MaterialRepository materialRepository;
 
@@ -50,10 +56,13 @@ public class MaterialHistoryControllerSpringBootTest {
 	public void cleanUp() {
 		materialHistoryRepository.deleteAll();
 		materialRepository.deleteAll();
+		TestHTTPClient.cleanup();
 	}
 
 	@BeforeEach
 	public void setUp() {
+		TestHTTPClient.setup(userService, authenticationService);
+		
 		List<Material> materials = new LinkedList<Material>();
 		Material gold = new Material();
 		gold.setName("Gold");
@@ -98,7 +107,7 @@ public class MaterialHistoryControllerSpringBootTest {
 	@Test
 	public void testList() throws Exception {
 
-		String body = mockMvc.perform(get("/materialHistory")).andExpect(status().isOk())
+		String body = mockMvc.perform(TestHTTPClient.doGet("/materialHistory")).andExpect(status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse()
 				.getContentAsString();
 
@@ -129,7 +138,7 @@ public class MaterialHistoryControllerSpringBootTest {
 
 		List<MaterialHistory> expectedMhs = materialHistoryRepository.findAll();
 		for (MaterialHistory expected : expectedMhs) {
-			String body = mockMvc.perform(get("/materialHistory/" + expected.getId())).andExpect(status().isOk())
+			String body = mockMvc.perform(TestHTTPClient.doGet("/materialHistory/" + expected.getId())).andExpect(status().isOk())
 					.andExpect(content().contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse()
 					.getContentAsString();
 			MaterialHistory result = objectMapper.readValue(body, MaterialHistory.class);
@@ -144,7 +153,7 @@ public class MaterialHistoryControllerSpringBootTest {
 
 	@Test
 	public void testGetbyIdNotFound() throws Exception {
-		mockMvc.perform(get("/materialHistory/unknownid")).andExpect(status().isNotFound());
+		mockMvc.perform(TestHTTPClient.doGet("/materialHistory/unknownid")).andExpect(status().isNotFound());
 	}
 
 	@Test
@@ -153,7 +162,7 @@ public class MaterialHistoryControllerSpringBootTest {
 		List<Material> materials = materialRepository.findAll();
 		for (Material material : materials) {
 
-			String body = mockMvc.perform(get("/materialHistory/byMaterial/" + material.getId()))
+			String body = mockMvc.perform(TestHTTPClient.doGet("/materialHistory/byMaterial/" + material.getId()))
 					.andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_JSON)).andReturn()
 					.getResponse().getContentAsString();
 
@@ -182,7 +191,7 @@ public class MaterialHistoryControllerSpringBootTest {
 
 	@Test
 	public void deleteByIdNotFound() throws Exception {
-		mockMvc.perform(delete("/materialHistory/unknownid")).andExpect(status().isNotFound());
+		mockMvc.perform(TestHTTPClient.doDelete("/materialHistory/unknownid")).andExpect(status().isNotFound());
 	}
 
 	@Test
@@ -190,7 +199,7 @@ public class MaterialHistoryControllerSpringBootTest {
 
 		List<MaterialHistory> expectedMhs = materialHistoryRepository.findAll();
 		for (MaterialHistory expected : expectedMhs) {
-			mockMvc.perform(delete("/materialHistory/" + expected.getId())).andExpect(status().isNoContent());
+			mockMvc.perform(TestHTTPClient.doDelete("/materialHistory/" + expected.getId())).andExpect(status().isNoContent());
 			assertFalse(materialHistoryRepository.existsById(expected.getId()));
 		}
 	}
@@ -201,7 +210,7 @@ public class MaterialHistoryControllerSpringBootTest {
 		List<Material> materials = materialRepository.findAll();
 		for (Material material : materials) {
 
-			mockMvc.perform(delete("/materialHistory/byMaterial/" + material.getId()))
+			mockMvc.perform(TestHTTPClient.doDelete("/materialHistory/byMaterial/" + material.getId()))
 					.andExpect(status().isNoContent());
 			assertTrue(materialHistoryRepository.findByMaterial(material.getId()).isEmpty());
 		}

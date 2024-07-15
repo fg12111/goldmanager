@@ -3,9 +3,6 @@ package com.my.goldmanager.rest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -13,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -30,13 +28,20 @@ import com.my.goldmanager.rest.request.UpdateUserPasswordRequest;
 import com.my.goldmanager.rest.request.UpdateUserStatusRequest;
 import com.my.goldmanager.rest.response.ErrorResponse;
 import com.my.goldmanager.rest.response.ListUserResponse;
+import com.my.goldmanager.service.AuthenticationService;
+import com.my.goldmanager.service.UserService;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 public class UserServiceControllerSpringBootTest {
 	private final SHA3_256HexEncoder passwordEncoder = new SHA3_256HexEncoder();
-	
+
+	@Autowired
+	private UserService userService;
+	@Autowired
+	private AuthenticationService authenticationService;
+
 	@Autowired
 	private UserLoginRepository userLoginRepository;
 	@Autowired
@@ -45,9 +50,16 @@ public class UserServiceControllerSpringBootTest {
 	@Autowired
 	private ObjectMapper objectMapper;
 
+	@BeforeEach
+	public void setup() {
+		TestHTTPClient.setup(userService, authenticationService);
+	}
+
 	@AfterEach
 	public void cleanUp() {
+		TestHTTPClient.cleanup();
 		userLoginRepository.deleteAll();
+
 	}
 
 	@Test
@@ -56,7 +68,7 @@ public class UserServiceControllerSpringBootTest {
 		createUserRequest.setPassword("MyPass");
 		createUserRequest.setUsername("myUser");
 
-		mockMvc.perform(post("/userService").contentType(MediaType.APPLICATION_JSON)
+		mockMvc.perform(TestHTTPClient.doPost("/userService").contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(createUserRequest))).andExpect(status().isCreated());
 
 		Optional<UserLogin> optional = userLoginRepository.findById("myUser");
@@ -65,6 +77,25 @@ public class UserServiceControllerSpringBootTest {
 		assertEquals(createUserRequest.getUsername(), result.getUserid());
 		assertTrue(result.isActive());
 		assertEquals(passwordEncoder.encode(createUserRequest.getPassword()), result.getPassword());
+	}
+
+	@Test
+	public void testDeleteUser() throws Exception {
+
+		userService.create("MyUser", "MyPass");
+		mockMvc.perform(TestHTTPClient.doDelete("/userService/deleteuser/MyUser")).andExpect(status().isNoContent());
+	}
+
+	@Test
+	public void testDeleteCurrentUser() throws Exception {
+
+		String body = mockMvc.perform(TestHTTPClient.doDelete("/userService/deleteuser/" + TestHTTPClient.username))
+				.andExpect(status().isBadRequest()).andReturn().getResponse().getContentAsString();
+		
+		ErrorResponse errorResponse = objectMapper.readValue(body, ErrorResponse.class);
+		assertEquals(400, errorResponse.getStatus());
+		assertEquals("Users must not delete them self.", errorResponse.getMessage());
+
 	}
 
 	@Test
@@ -79,10 +110,9 @@ public class UserServiceControllerSpringBootTest {
 		UpdateUserPasswordRequest updateUserPasswordRequest = new UpdateUserPasswordRequest();
 		updateUserPasswordRequest.setNewPassword("MyNewPass");
 
-		mockMvc.perform(
-				put("/userService/updatePassword/" + userLogin.getUserid()).contentType(MediaType.APPLICATION_JSON)
-						.content(objectMapper.writeValueAsString(updateUserPasswordRequest)))
-				.andExpect(status().isNoContent());
+		mockMvc.perform(TestHTTPClient.doPut("/userService/updatePassword/" + userLogin.getUserid())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(updateUserPasswordRequest))).andExpect(status().isNoContent());
 
 		Optional<UserLogin> optional = userLoginRepository.findById("myUser");
 		assertTrue(optional.isPresent());
@@ -103,7 +133,8 @@ public class UserServiceControllerSpringBootTest {
 		UpdateUserStatusRequest updateUserStatusRequest = new UpdateUserStatusRequest();
 		updateUserStatusRequest.setActive(true);
 
-		mockMvc.perform(put("/userService/setStatus/" + userLogin.getUserid()).contentType(MediaType.APPLICATION_JSON)
+		mockMvc.perform(TestHTTPClient.doPut("/userService/setStatus/" + userLogin.getUserid())
+				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(updateUserStatusRequest))).andExpect(status().isNoContent());
 
 		Optional<UserLogin> optional = userLoginRepository.findById("myUser");
@@ -112,7 +143,8 @@ public class UserServiceControllerSpringBootTest {
 		assertTrue(result.isActive());
 
 		updateUserStatusRequest.setActive(false);
-		mockMvc.perform(put("/userService/setStatus/" + userLogin.getUserid()).contentType(MediaType.APPLICATION_JSON)
+		mockMvc.perform(TestHTTPClient.doPut("/userService/setStatus/" + userLogin.getUserid())
+				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(updateUserStatusRequest))).andExpect(status().isNoContent());
 
 		optional = userLoginRepository.findById("myUser");
@@ -120,11 +152,38 @@ public class UserServiceControllerSpringBootTest {
 		result = optional.get();
 		assertFalse(result.isActive());
 
-		mockMvc.perform(put("/userService/setStatus/invaliduser").contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(updateUserStatusRequest))).andExpect(status().isNotFound());
+		mockMvc.perform(
+				TestHTTPClient.doPut("/userService/setStatus/invaliduser").contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(updateUserStatusRequest)))
+				.andExpect(status().isNotFound());
 
 	}
 
+	@Test
+	public void testUpdateCurrentUserStatus() throws Exception {
+		
+		UpdateUserStatusRequest updateUserStatusRequest = new UpdateUserStatusRequest();
+		updateUserStatusRequest.setActive(true);
+
+		String body = mockMvc.perform(TestHTTPClient.doPut("/userService/setStatus/" + TestHTTPClient.username)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(updateUserStatusRequest))).andExpect(status().isBadRequest()).andReturn().getResponse().getContentAsString();
+
+		ErrorResponse errorResponse = objectMapper.readValue(body, ErrorResponse.class);
+		
+		assertEquals(400, errorResponse.getStatus());
+		assertEquals("Users must not activate or deactivate them self.", errorResponse.getMessage());
+
+		updateUserStatusRequest.setActive(false);
+		body = mockMvc.perform(TestHTTPClient.doPut("/userService/setStatus/" +  TestHTTPClient.username)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(updateUserStatusRequest))).andExpect(status().isBadRequest()).andReturn().getResponse().getContentAsString();
+
+		errorResponse = objectMapper.readValue(body, ErrorResponse.class);
+
+		assertEquals(400, errorResponse.getStatus());
+		assertEquals("Users must not activate or deactivate them self.", errorResponse.getMessage());
+	}
 	@Test
 	public void testUpdateUserPasswordInvalid() throws Exception {
 
@@ -138,7 +197,7 @@ public class UserServiceControllerSpringBootTest {
 		updateUserPasswordRequest.setNewPassword(null);
 
 		String body = mockMvc
-				.perform(put("/userService/updatePassword/" + userLogin.getUserid())
+				.perform(TestHTTPClient.doPut("/userService/updatePassword/" + userLogin.getUserid())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(updateUserPasswordRequest)))
 				.andExpect(status().isBadRequest()).andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -152,7 +211,7 @@ public class UserServiceControllerSpringBootTest {
 		updateUserPasswordRequest.setNewPassword("");
 
 		body = mockMvc
-				.perform(put("/userService/updatePassword/" + userLogin.getUserid())
+				.perform(TestHTTPClient.doPut("/userService/updatePassword/" + userLogin.getUserid())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(updateUserPasswordRequest)))
 				.andExpect(status().isBadRequest()).andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -170,8 +229,10 @@ public class UserServiceControllerSpringBootTest {
 		UpdateUserPasswordRequest updateUserPasswordRequest = new UpdateUserPasswordRequest();
 		updateUserPasswordRequest.setNewPassword("MyNewPass");
 
-		mockMvc.perform(put("/userService/updatePassword/invaliduser").contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(updateUserPasswordRequest))).andExpect(status().isNotFound());
+		mockMvc.perform(
+				TestHTTPClient.doPut("/userService/updatePassword/invaliduser").contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(updateUserPasswordRequest)))
+				.andExpect(status().isNotFound());
 	}
 
 	@Test
@@ -188,7 +249,7 @@ public class UserServiceControllerSpringBootTest {
 		createUserRequest.setUsername("myUser");
 
 		String body = mockMvc
-				.perform(post("/userService").contentType(MediaType.APPLICATION_JSON)
+				.perform(TestHTTPClient.doPost("/userService").contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(createUserRequest)))
 				.andExpect(status().isBadRequest()).andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andReturn().getResponse().getContentAsString();
@@ -206,7 +267,7 @@ public class UserServiceControllerSpringBootTest {
 		createUserRequest.setUsername(null);
 
 		String body = mockMvc
-				.perform(post("/userService").contentType(MediaType.APPLICATION_JSON)
+				.perform(TestHTTPClient.doPost("/userService").contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(createUserRequest)))
 				.andExpect(status().isBadRequest()).andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andReturn().getResponse().getContentAsString();
@@ -220,7 +281,7 @@ public class UserServiceControllerSpringBootTest {
 		createUserRequest.setUsername("");
 
 		body = mockMvc
-				.perform(post("/userService").contentType(MediaType.APPLICATION_JSON)
+				.perform(TestHTTPClient.doPost("/userService").contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(createUserRequest)))
 				.andExpect(status().isBadRequest()).andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andReturn().getResponse().getContentAsString();
@@ -238,7 +299,7 @@ public class UserServiceControllerSpringBootTest {
 		createUserRequest.setUsername("MyUser");
 
 		String body = mockMvc
-				.perform(post("/userService").contentType(MediaType.APPLICATION_JSON)
+				.perform(TestHTTPClient.doPost("/userService").contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(createUserRequest)))
 				.andExpect(status().isBadRequest()).andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andReturn().getResponse().getContentAsString();
@@ -252,7 +313,7 @@ public class UserServiceControllerSpringBootTest {
 		createUserRequest.setUsername("MyUser");
 
 		body = mockMvc
-				.perform(post("/userService").contentType(MediaType.APPLICATION_JSON)
+				.perform(TestHTTPClient.doPost("/userService").contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(createUserRequest)))
 				.andExpect(status().isBadRequest()).andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andReturn().getResponse().getContentAsString();
@@ -274,7 +335,7 @@ public class UserServiceControllerSpringBootTest {
 		}
 
 		List<UserLogin> expectedUsers = userLoginRepository.findAll();
-		String body = mockMvc.perform(get("/userService")).andExpect(status().isOk())
+		String body = mockMvc.perform(TestHTTPClient.doGet("/userService")).andExpect(status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse()
 				.getContentAsString();
 		ListUserResponse listUserResponse = objectMapper.readValue(body, ListUserResponse.class);

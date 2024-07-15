@@ -17,7 +17,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.my.goldmanager.repository.UserLoginRepository;
 import com.my.goldmanager.rest.request.AuthRequest;
-import com.my.goldmanager.service.JWTAuthenticationService;
+import com.my.goldmanager.service.AuthenticationService;
 import com.my.goldmanager.service.UserService;
 
 @SpringBootTest
@@ -28,7 +28,7 @@ public class AuthControllerSpringBootTest {
 	private UserLoginRepository userLoginRepository;
 
 	@Autowired
-	JWTAuthenticationService authenticationService;
+	AuthenticationService authenticationService;
 
 	@Autowired
 	private UserService userService;
@@ -58,5 +58,35 @@ public class AuthControllerSpringBootTest {
 				.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
 		mockMvc.perform(get("/userService").header("Authorization", "Bearer " + token)).andExpect(status().isOk());
 
+	}
+
+	@Test
+	public void testLoginFailure() throws JsonProcessingException, Exception {
+		userService.create("user", "password");
+		AuthRequest authRequest = new AuthRequest();
+		authRequest.setUsername("user");
+		authRequest.setPassword("password1");
+
+		mockMvc.perform(post("/login").contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(authRequest))).andExpect(status().isUnauthorized());
+
+	}
+
+	@Test
+	public void testLogout() throws JsonProcessingException, Exception {
+		userService.create("user", "password");
+		AuthRequest authRequest = new AuthRequest();
+		authRequest.setUsername("user");
+		authRequest.setPassword("password");
+
+		String token = mockMvc
+				.perform(post("/login").contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(authRequest)))
+				.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+	
+		mockMvc.perform(get("/logoutuser").header("Authorization", "Bearer " + token)).andExpect(status().isNoContent());
+
+		mockMvc.perform(get("/userService").header("Authorization", "Bearer " + token))
+				.andExpect(status().is(403));
 	}
 }

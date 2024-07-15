@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 import io.jsonwebtoken.Jwts;
 
 @Service
-public class JWTAuthenticationService {
+public class AuthenticationService {
 	@Autowired
 	private AuthenticationManager authenticationManager;
 

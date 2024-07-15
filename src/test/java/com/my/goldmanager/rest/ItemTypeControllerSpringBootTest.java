@@ -3,10 +3,6 @@ package com.my.goldmanager.rest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -31,11 +27,19 @@ import com.my.goldmanager.entity.ItemType;
 import com.my.goldmanager.entity.Material;
 import com.my.goldmanager.repository.ItemTypeRepository;
 import com.my.goldmanager.repository.MaterialRepository;
+import com.my.goldmanager.service.AuthenticationService;
+import com.my.goldmanager.service.UserService;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 public class ItemTypeControllerSpringBootTest {
+	@Autowired
+	private UserService userService;
+
+	@Autowired
+	private AuthenticationService authenticationService;
+
 	@Autowired
 	private ItemTypeRepository itemTypeRepository;
 	@Autowired
@@ -52,6 +56,8 @@ public class ItemTypeControllerSpringBootTest {
 
 	@BeforeEach
 	public void setUp() {
+		TestHTTPClient.setup(userService,authenticationService);
+
 		Material m = new Material();
 		m.setName("Gold");
 		m.setPrice(2000);
@@ -62,7 +68,6 @@ public class ItemTypeControllerSpringBootTest {
 		m.setPrice(500);
 
 		silver = materialRepository.save(m);
-
 	}
 
 	@AfterEach
@@ -72,6 +77,7 @@ public class ItemTypeControllerSpringBootTest {
 
 		gold = null;
 		silver = null;
+		TestHTTPClient.cleanup();
 	}
 
 	@Test
@@ -102,9 +108,9 @@ public class ItemTypeControllerSpringBootTest {
 		itemTypeRepository.save(silverBar);
 		itemTypes.add(silverBar);
 
-		String body = mockMvc.perform(get("/itemTypes")).andExpect(status().isOk())
-				.andExpect(content().contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse()
-				.getContentAsString();
+		String body = mockMvc.perform(TestHTTPClient.doGet("/itemTypes"))
+				.andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_JSON)).andReturn()
+				.getResponse().getContentAsString();
 
 		JsonNode node = objectMapper.readTree(body);
 		assertFalse(node.isEmpty());
@@ -132,7 +138,7 @@ public class ItemTypeControllerSpringBootTest {
 		mappleLeaf.setMaterial(gold);
 		mappleLeaf.setName("1/2 oz Mapple Leaf");
 
-		mockMvc.perform(post("/itemTypes").contentType(MediaType.APPLICATION_JSON)
+		mockMvc.perform(TestHTTPClient.doPost("/itemTypes").contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(mappleLeaf))).andExpect(status().isCreated())
 				.andExpect(jsonPath("$.name").value(mappleLeaf.getName()))
 				.andExpect(jsonPath("$.modifier").value(mappleLeaf.getModifier()));
@@ -147,11 +153,13 @@ public class ItemTypeControllerSpringBootTest {
 
 		mappleLeaf = itemTypeRepository.save(mappleLeaf);
 
-		mockMvc.perform(delete("/itemTypes/{id}", mappleLeaf.getId())).andExpect(status().isNoContent());
+		mockMvc.perform(TestHTTPClient.doDelete("/itemTypes/" + mappleLeaf.getId()))
+				.andExpect(status().isNoContent());
 
 		assertFalse(itemTypeRepository.existsById(mappleLeaf.getId()));
 
-		mockMvc.perform(delete("/itemTypes/{id}", mappleLeaf.getId())).andExpect(status().isNotFound());
+		mockMvc.perform(TestHTTPClient.doDelete("/itemTypes/" + mappleLeaf.getId()))
+				.andExpect(status().isNotFound());
 
 	}
 
@@ -167,9 +175,9 @@ public class ItemTypeControllerSpringBootTest {
 		mappleLeaf.setModifier(1);
 		mappleLeaf.setName("1 oz Mapple Leaf");
 
-		mockMvc.perform(put("/itemTypes/" + mappleLeaf.getId()).contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(mappleLeaf))).andExpect(status().isOk())
-				.andExpect(jsonPath("$.name").value(mappleLeaf.getName()))
+		mockMvc.perform(TestHTTPClient.doPut("/itemTypes/" + mappleLeaf.getId())
+				.contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(mappleLeaf)))
+				.andExpect(status().isOk()).andExpect(jsonPath("$.name").value(mappleLeaf.getName()))
 				.andExpect(jsonPath("$.modifier").value(mappleLeaf.getModifier()));
 
 	}
@@ -183,12 +191,13 @@ public class ItemTypeControllerSpringBootTest {
 
 		mappleLeaf = itemTypeRepository.save(mappleLeaf);
 
-		mockMvc.perform(get("/itemTypes/" + mappleLeaf.getId())).andExpect(status().isOk())
-				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+		mockMvc.perform(TestHTTPClient.doGet("/itemTypes/" + mappleLeaf.getId()))
+				.andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.name").value(mappleLeaf.getName()))
 				.andExpect(jsonPath("$.modifier").value(mappleLeaf.getModifier()));
 
-		mockMvc.perform(get("/itemTypes/notexistent")).andExpect(status().isNotFound());
+		mockMvc.perform(TestHTTPClient.doGet("/itemTypes/notexistent"))
+				.andExpect(status().isNotFound());
 	}
 
 }
