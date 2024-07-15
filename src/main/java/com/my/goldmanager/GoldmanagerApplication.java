@@ -24,7 +24,7 @@ public class GoldmanagerApplication {
 	public DatabaseStartupValidator databaseStartupValidator(DataSource dataSource) {
 		DatabaseStartupValidator dsv = new DatabaseStartupValidator();
 		dsv.setDataSource(dataSource);
-		dsv.setInterval(15);
+		dsv.setInterval(5);
 		dsv.setTimeout(1200);
 		return dsv;
 	}

@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.my.goldmanager.entity.MaterialHistory;
 import com.my.goldmanager.service.MaterialHistoryService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 @RestController
 @RequestMapping("/materialHistory")
 public class MaterialHistoryController {
@@ -22,16 +25,19 @@ public class MaterialHistoryController {
 	private MaterialHistoryService service;
 
 	@GetMapping
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public List<MaterialHistory> list() {
 		return service.getAll();
 	}
 
 	@GetMapping(path = "/byMaterial/{materialId}")
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public List<MaterialHistory> listByMaterial(@PathVariable("materialId") String materialId) {
 		return service.findAllByMaterial(materialId);
 	}
 
 	@GetMapping(path = "/{id}")
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public ResponseEntity<MaterialHistory> getById(@PathVariable(name = "id") String id) {
 		Optional<MaterialHistory> result = service.getbyId(id);
 		if (result.isPresent()) {
@@ -42,6 +48,7 @@ public class MaterialHistoryController {
 	}
 
 	@DeleteMapping(path = "/{id}")
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public ResponseEntity<Void> deleteById(@PathVariable(name = "id") String id) {
 		if (service.deleteById(id)) {
 			return ResponseEntity.noContent().build();
@@ -50,6 +57,7 @@ public class MaterialHistoryController {
 	}
 
 	@DeleteMapping(path = "/byMaterial/{materialId}")
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public ResponseEntity<Void> deleteByMaterial(@PathVariable("materialId") String materialId) {
 		 service.deleteAllByMaterial(materialId);
 		 return ResponseEntity.noContent().build();

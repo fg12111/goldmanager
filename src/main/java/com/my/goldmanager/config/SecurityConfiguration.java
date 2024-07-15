@@ -37,7 +37,8 @@ public class SecurityConfiguration {
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http.authorizeHttpRequests(
-				(requests) -> requests.requestMatchers("/login").permitAll().anyRequest().authenticated())
+				(requests) -> requests.requestMatchers("/login").permitAll().requestMatchers("/swagger-ui/**")
+						.permitAll().requestMatchers("/v3/**").permitAll().anyRequest().authenticated())
 				.httpBasic(httpBasic -> httpBasic.disable()).csrf((csfr) -> csfr.disable());
 
 		http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
@@ -71,11 +72,13 @@ public class SecurityConfiguration {
 			@Override
 			public Authentication authenticate(Authentication authentication) throws AuthenticationException {
 				UserDetails userdetails = userDetailsService.loadUserByUsername(authentication.getName());
-				if (userdetails.isEnabled() && passwordEncoder().matches(String.valueOf(authentication.getCredentials()),
-						userdetails.getPassword())) {
+				if (userdetails.isEnabled() && passwordEncoder()
+						.matches(String.valueOf(authentication.getCredentials()), userdetails.getPassword())) {
 
-					return new UsernamePasswordAuthenticationToken(new User(userdetails.getUsername(), userdetails.getPassword(), userdetails.getAuthorities()), userdetails.getPassword(),
-							userdetails.getAuthorities());
+					return new UsernamePasswordAuthenticationToken(
+							new User(userdetails.getUsername(), userdetails.getPassword(),
+									userdetails.getAuthorities()),
+							userdetails.getPassword(), userdetails.getAuthorities());
 				}
 				throw new BadCredentialsException("Not Authenticated");
 			}

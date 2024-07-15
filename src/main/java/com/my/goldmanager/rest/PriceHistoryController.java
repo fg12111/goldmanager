@@ -20,6 +20,9 @@ import com.my.goldmanager.rest.response.ErrorResponse;
 import com.my.goldmanager.service.PriceHistoryService;
 import com.my.goldmanager.service.exception.BadRequestException;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 @RestController
 @RequestMapping("/priceHistory")
 public class PriceHistoryController {
@@ -28,6 +31,7 @@ public class PriceHistoryController {
 	private PriceHistoryService priceHistoryService;
 
 	@GetMapping(path = "/{materialId}")
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public ResponseEntity<PriceHistoryList> listAllforMaterial(@PathVariable("materialId") String materialId,
 			@RequestParam(name = "startDate", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX") Date startDate,
 			@RequestParam(name = "endDate", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX") Date endDate) {
@@ -47,6 +51,7 @@ public class PriceHistoryController {
 	}
 
 	@ExceptionHandler(BadRequestException.class)
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public final ResponseEntity<ErrorResponse> handleBadRequestException(BadRequestException ex, WebRequest request) {
 		ErrorResponse errorResponse = new ErrorResponse(HttpStatus.BAD_REQUEST.value(), ex.getMessage());
 		return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);

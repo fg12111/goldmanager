@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.my.goldmanager.entity.Unit;
 import com.my.goldmanager.service.UnitService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 @RestController
 @RequestMapping("/units")
 public class UnitController {
@@ -26,11 +29,13 @@ public class UnitController {
 	private UnitService unitService;
 
 	@GetMapping
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public List<Unit> getAll() {
 		return unitService.listAll();
 	}
 
 	@GetMapping(path = "/{name}")
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public ResponseEntity<Unit> getByName(@PathVariable(name = "name") String name) {
 		Optional<Unit> optional = unitService.getByName(name);
 		if (optional.isPresent()) {
@@ -40,11 +45,13 @@ public class UnitController {
 	}
 
 	@PostMapping
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public ResponseEntity<Unit> create(@RequestBody Unit unit) {
 		return ResponseEntity.status(HttpStatus.CREATED).body(unitService.save(unit));
 	}
 
 	@PutMapping(path = "/{name}")
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public ResponseEntity<Unit> update(@PathVariable(name = "name") String name, @RequestBody Unit unit) {
 
 		Optional<Unit> optionalUnit = unitService.update(name, unit);
@@ -56,6 +63,7 @@ public class UnitController {
 	
 
 	@DeleteMapping(path = "/{name}")
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public ResponseEntity<Void> delete(@PathVariable(name = "name") String name) {
 		if (unitService.deleteByName(name)) {
 			return ResponseEntity.noContent().build();

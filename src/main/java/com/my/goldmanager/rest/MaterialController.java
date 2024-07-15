@@ -25,6 +25,9 @@ import com.my.goldmanager.service.MaterialService;
 import com.my.goldmanager.service.exception.BadRequestException;
 import com.my.goldmanager.service.exception.ValidationException;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 @RestController
 @RequestMapping("/materials")
 public class MaterialController {
@@ -33,17 +36,20 @@ public class MaterialController {
 	private MaterialService materialService;
 
 	@PostMapping
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public ResponseEntity<Material> create(@RequestBody Material material) {
 		Material savedmaterial = materialService.store(material);
 		return ResponseEntity.status(HttpStatus.CREATED).body(savedmaterial);
 	}
 
 	@GetMapping
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public List<Material> list() {
 		return materialService.list();
 	}
 
 	@GetMapping(path = "/{id}")
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public ResponseEntity<Material> getbyId(@PathVariable(name = "id") String id) {
 		Optional<Material> result = materialService.getById(id);
 		if (result.isPresent()) {
@@ -54,6 +60,7 @@ public class MaterialController {
 	}
 
 	@PutMapping(path = "/{id}")
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public ResponseEntity<Material> update(@PathVariable(name = "id") String id, @RequestBody Material material) {
 		try {
 			Optional<Material> result = materialService.update(id, material);
@@ -68,6 +75,7 @@ public class MaterialController {
 	}
 
 	@DeleteMapping(path = "/{id}")
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public ResponseEntity<Void> delete(@PathVariable(name = "id") String id) {
 		if (materialService.deleteById(id)) {
 			return ResponseEntity.noContent().build();

@@ -18,8 +18,12 @@ import org.springframework.web.bind.annotation.RestController;
 import com.my.goldmanager.entity.Item;
 import com.my.goldmanager.service.ItemService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 @RestController
 @RequestMapping("/items")
+
 public class ItemController {
 
 	@Autowired
@@ -32,6 +36,7 @@ public class ItemController {
 	 * @return
 	 */
 	@PostMapping
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public ResponseEntity<Item> create(@RequestBody Item item) {
 		Item savedItem =itemService.create(item); 
 		return ResponseEntity.status(HttpStatus.CREATED).body(savedItem);
@@ -44,6 +49,7 @@ public class ItemController {
 	 * @return
 	 */
 	@PutMapping(path = "/{id}")
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public ResponseEntity<Item> update(@PathVariable(name = "id") String id, @RequestBody Item item){
 		Optional<Item> result = itemService.update(id, item);
 		if(result.isPresent()) {
@@ -58,6 +64,7 @@ public class ItemController {
 	 * @return
 	 */
 	@GetMapping(path ="/{id}")
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public ResponseEntity<Item> get(@PathVariable(name = "id") String id){
 		Optional<Item> result = itemService.getById(id);
 		if(result.isPresent()) {
@@ -72,6 +79,7 @@ public class ItemController {
 	 * @return
 	 */
 	@DeleteMapping(path="/{id}")
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public ResponseEntity<Void> delete(@PathVariable(name = "id") String id){
 		if(itemService.delete(id)) {
 			return ResponseEntity.noContent().build();
@@ -84,6 +92,7 @@ public class ItemController {
 	 * @return
 	 */
 	@GetMapping
+	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public List<Item> list(){
 		return itemService.list();
 	}
