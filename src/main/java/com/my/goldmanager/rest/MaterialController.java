@@ -38,8 +38,12 @@ public class MaterialController {
 	@PostMapping
 	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public ResponseEntity<Material> create(@RequestBody Material material) {
-		Material savedmaterial = materialService.store(material);
-		return ResponseEntity.status(HttpStatus.CREATED).body(savedmaterial);
+		try {
+			Material savedmaterial = materialService.store(material);
+			return ResponseEntity.status(HttpStatus.CREATED).body(savedmaterial);
+		} catch (ValidationException ve) {
+			throw new BadRequestException(ve.getMessage(), ve);
+		}
 	}
 
 	@GetMapping
