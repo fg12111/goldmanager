@@ -8,17 +8,23 @@ import org.springframework.stereotype.Service;
 
 import com.my.goldmanager.entity.Unit;
 import com.my.goldmanager.repository.UnitRepository;
+import com.my.goldmanager.service.exception.ValidationException;
+
+
 
 @Service
 public class UnitService {
 	@Autowired
 	private UnitRepository unitRepository;
 
-	public Unit save(Unit unit) {
+	public Unit save(Unit unit) throws ValidationException {
+		if(unit.getName() == null || unit.getName().isBlank()) {
+			throw new ValidationException("Unit name is mandatory.");
+		}
 		return unitRepository.save(unit);
 	}
 
-	public Optional<Unit> update(String name, Unit unit) {
+	public Optional<Unit> update(String name, Unit unit) throws ValidationException {
 		if (unitRepository.existsById(name)) {
 			unit.setName(name);
 			return Optional.of(save(unit));

@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,9 +15,19 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.WebRequest;
 
 import com.my.goldmanager.entity.Unit;
+import com.my.goldmanager.rest.response.ErrorResponse;
 import com.my.goldmanager.service.UnitService;
+import com.my.goldmanager.service.exception.BadRequestException;
+import com.my.goldmanager.service.exception.ValidationException;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -47,18 +58,25 @@ public class UnitController {
 	@PostMapping
 	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public ResponseEntity<Unit> create(@RequestBody Unit unit) {
-		return ResponseEntity.status(HttpStatus.CREATED).body(unitService.save(unit));
+		try {
+			return ResponseEntity.status(HttpStatus.CREATED).body(unitService.save(unit));
+		} catch (ValidationException ve) {
+			throw new BadRequestException(ve.getMessage(), ve);
+		}
 	}
 
 	@PutMapping(path = "/{name}")
 	@Operation(security = @SecurityRequirement(name = "bearerAuth"))
 	public ResponseEntity<Unit> update(@PathVariable(name = "name") String name, @RequestBody Unit unit) {
-
-		Optional<Unit> optionalUnit = unitService.update(name, unit);
-		if (optionalUnit.isPresent()) {
-			return ResponseEntity.ok(optionalUnit.get());
+		try {
+			Optional<Unit> optionalUnit = unitService.update(name, unit);
+			if (optionalUnit.isPresent()) {
+				return ResponseEntity.ok(optionalUnit.get());
+			}
+			return ResponseEntity.notFound().build();
+		} catch (ValidationException ve) {
+			throw new BadRequestException(ve.getMessage(), ve);
 		}
-		return ResponseEntity.notFound().build();
 	}
 	
 
@@ -70,5 +88,11 @@ public class UnitController {
 		} else {
 			return ResponseEntity.notFound().build();
 		}
+	}
+
+	@ExceptionHandler(BadRequestException.class)
+	public final ResponseEntity<ErrorResponse> handleBadRequestException(BadRequestException ex, WebRequest request) {
+		ErrorResponse errorResponse = new ErrorResponse(HttpStatus.BAD_REQUEST.value(), ex.getMessage());
+		return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
 	}
 }
