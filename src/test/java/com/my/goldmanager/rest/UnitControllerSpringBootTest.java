@@ -22,6 +22,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.my.goldmanager.entity.Unit;
 import com.my.goldmanager.repository.UnitRepository;
+
+import com.my.goldmanager.rest.response.ErrorResponse;
 import com.my.goldmanager.service.AuthenticationService;
 import com.my.goldmanager.service.UserService;
 
@@ -93,12 +95,42 @@ public class UnitControllerSpringBootTest {
 		Unit gramm = new Unit();
 		gramm.setName("gramm");
 		gramm.setFactor(1.0f / 31.1034768f);
-		mockMvc.perform(
-				TestHTTPClient.doPost("/units").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(gramm)))
-				.andExpect(status().isCreated()).andExpect(jsonPath("$.name").value("gramm"))
-				.andExpect(jsonPath("$.factor").value(gramm.getFactor()));
+
+		mockMvc.perform(TestHTTPClient.doPost("/units").contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(gramm))).andExpect(status().isCreated())
+				.andExpect(jsonPath("$.name").value("gramm")).andExpect(jsonPath("$.factor").value(gramm.getFactor()));
+
 	}
 
+	@Test
+	public void testInvalidCreateEmptyName() throws JsonProcessingException, Exception {
+		Unit gramm = new Unit();
+		gramm.setName("");
+		gramm.setFactor(1.0f / 31.1034768f);
+		String body = mockMvc
+				.perform(TestHTTPClient.doPost("/units").contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(gramm)))
+				.andExpect(status().isBadRequest()).andReturn().getResponse().getContentAsString();
+		
+		ErrorResponse errorResponse = objectMapper.readValue(body, ErrorResponse.class);
+		assertEquals(400, errorResponse.getStatus());
+		assertEquals("Unit name is mandatory.", errorResponse.getMessage());
+	}
+
+	@Test
+	public void testInvalidCreateNullName() throws JsonProcessingException, Exception {
+		Unit gramm = new Unit();
+		gramm.setName(null);
+		gramm.setFactor(1.0f / 31.1034768f);
+		String body = mockMvc
+				.perform(TestHTTPClient.doPost("/units").contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(gramm)))
+				.andExpect(status().isBadRequest()).andReturn().getResponse().getContentAsString();
+		
+		ErrorResponse errorResponse = objectMapper.readValue(body, ErrorResponse.class);
+		assertEquals(400, errorResponse.getStatus());
+		assertEquals("Unit name is mandatory.", errorResponse.getMessage());
+	}
 	@Test
 	public void testUpdate() throws JsonProcessingException, Exception {
 		Unit gramm = new Unit();
@@ -120,11 +152,12 @@ public class UnitControllerSpringBootTest {
 		unit.setName("OZ");
 		unit.setFactor(1);
 		unitRepository.save(unit);
-		mockMvc.perform(TestHTTPClient.doDelete("/units/"+ unit.getName())).andExpect(status().isNoContent());
+
+		mockMvc.perform(TestHTTPClient.doDelete("/units/" + unit.getName())).andExpect(status().isNoContent());
 
 		assertFalse(unitRepository.existsById(unit.getName()));
 
-		mockMvc.perform(TestHTTPClient.doDelete("/units/"+ unit.getName())).andExpect(status().isNotFound());
+		mockMvc.perform(TestHTTPClient.doDelete("/units/" + unit.getName())).andExpect(status().isNotFound());
 
 	}
 
