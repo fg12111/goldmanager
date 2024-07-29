@@ -9,7 +9,7 @@ updates:
     schedule:
       interval: "weekly"
 
-  - package-ecosystem: "gradke"
+  - package-ecosystem: "gradle"
     directory: "/backend"
     schedule:
       interval: "weekly"
