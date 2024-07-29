@@ -53,7 +53,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @RestController
-@RequestMapping("/units")
+@RequestMapping("/api/units")
 public class UnitController {
 
 	@Autowired

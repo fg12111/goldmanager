@@ -2,7 +2,7 @@ import axios from 'axios';
 
 
 const instance = axios.create({
-  baseURL: "/api/",
+  baseURL: process.env.VUE_APP_API_BASE_URL+"/api/",
 });
 
 

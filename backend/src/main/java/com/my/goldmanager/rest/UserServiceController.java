@@ -44,7 +44,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @RestController
-@RequestMapping("/userService")
+@RequestMapping("/api/userService")
 public class UserServiceController {
 
 	@Autowired

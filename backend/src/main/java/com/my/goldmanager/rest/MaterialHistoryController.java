@@ -32,7 +32,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @RestController
-@RequestMapping("/materialHistory")
+@RequestMapping("/api/materialHistory")
 public class MaterialHistoryController {
 
 	@Autowired

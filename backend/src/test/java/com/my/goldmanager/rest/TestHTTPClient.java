@@ -13,6 +13,7 @@ import com.my.goldmanager.service.exception.ValidationException;
 
 public class TestHTTPClient {
 
+	private static final String contextPath = "/api";
 	public static final String username = "testuser";
 	private static final String pass = "testpass";
 
@@ -45,19 +46,19 @@ public class TestHTTPClient {
 	}
 
 	public static MockHttpServletRequestBuilder doGet(String path) {
-		return authenticate(get(path));
+		return authenticate(get(setContextPath(path)));
 	}
 
 	public static MockHttpServletRequestBuilder doPost(String path) {
-		return authenticate(post(path));
+		return authenticate(post(setContextPath(path)));
 	}
 
 	public static MockHttpServletRequestBuilder doPut(String path) {
-		return authenticate(put(path));
+		return authenticate(put(setContextPath(path)));
 	}
 
 	public static MockHttpServletRequestBuilder doDelete(String path) {
-		return authenticate(delete(path));
+		return authenticate(delete(setContextPath(path)));
 	}
 
 	public static MockHttpServletRequestBuilder authenticate(MockHttpServletRequestBuilder builder) {
@@ -67,4 +68,13 @@ public class TestHTTPClient {
 		return builder.header("Authorization", "Bearer " + token);
 	}
 
+	private static String setContextPath(String path) {
+		if (path.startsWith(contextPath + "/")) {
+			return path;
+		}
+		if (!path.startsWith("/")) {
+			return contextPath + "/" + path;
+		}
+		return contextPath + path;
+	}
 }

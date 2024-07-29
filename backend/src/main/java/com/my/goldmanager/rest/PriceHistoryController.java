@@ -38,7 +38,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @RestController
-@RequestMapping("/priceHistory")
+@RequestMapping("/api/priceHistory")
 public class PriceHistoryController {
 
 	@Autowired

@@ -43,7 +43,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @RestController
-@RequestMapping("/materials")
+@RequestMapping("/api/materials")
 public class MaterialController {
 	private static final Logger logger = LoggerFactory.getLogger(MaterialController.class);
 	@Autowired

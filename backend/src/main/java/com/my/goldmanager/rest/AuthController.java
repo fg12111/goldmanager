@@ -22,12 +22,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.my.goldmanager.rest.request.AuthRequest;
 import com.my.goldmanager.service.AuthenticationService;
 
-@RestController
+@RestController()
+@RequestMapping("/api/auth")
 public class AuthController {
 
 	@Autowired
