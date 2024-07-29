@@ -63,4 +63,5 @@ jobs:
         cp -r frontend/dist/* backend/src/main/resources/static/
 
     - name: Test Backend
+      working-directory: ./backend
       run: ./gradlew test -p backend
