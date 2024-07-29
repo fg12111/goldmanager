@@ -32,7 +32,7 @@ export default {
     ...mapActions(['login']), // Mappe die Vuex-Action zum `login`
     async handleLogin() {
       try {
-        const response = await axios.post('/login', {
+        const response = await axios.post('/auth/login', {
           username: this.username,
           password: this.password
         });

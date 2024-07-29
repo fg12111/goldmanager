@@ -26,7 +26,7 @@ export default {
      ...mapActions(['logout']),
     async logout() {
       try{
-       await axios.get('/logoutuser');
+       await axios.get('/auth/logoutuser');
       }
       catch(error){
         console.error("logout request failed",error)
@@ -34,7 +34,6 @@ export default {
       this.$store.dispatch('logout');
       sessionStorage.removeItem('jwt-token');
       sessionStorage.removeItem('username');
-      sessionStorage.removeItem('VUE_APP_API_BASE_URL');
       this.$router.push('/login');
     }
   }
