@@ -1,4 +1,4 @@
-# goldmanager-ui
+# goldmanager
 
 ## Project setup
 ```
