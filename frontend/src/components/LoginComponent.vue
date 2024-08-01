@@ -38,7 +38,7 @@ export default {
           password: this.password
         });
 		const decodedToken = jwtDecode(response.data);
-		const expiration =  new Date(decodedToken.exp * 1000);
+		const expiration =  new Date(decodedToken.exp * 1000).toISOString();
 		sessionStorage.setItem('jwtExp',expiration);
         sessionStorage.setItem('jwt-token', response.data); // Speichere das Token im sessionStorage
         sessionStorage.setItem('username', this.username); // Speichere das Token im sessionStorage

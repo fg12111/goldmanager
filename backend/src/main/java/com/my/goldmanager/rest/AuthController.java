@@ -33,7 +33,7 @@ import com.my.goldmanager.service.AuthenticationService;
 public class AuthController {
 
 	@Autowired
-	AuthenticationService authenticationService;
+	private AuthenticationService authenticationService;
 
 	@PostMapping("/login")
 	public ResponseEntity<String> login(@RequestBody AuthRequest authRequest) {
@@ -44,6 +44,12 @@ public class AuthController {
 		} catch (AuthenticationException e) {
 			return ResponseEntity.status(401).body("Unauthorized");
 		}
+	}
+
+	@GetMapping("/refresh")
+	public ResponseEntity<String> refresh() {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		return ResponseEntity.ok(authenticationService.refresJWTToken(authentication.getName()));
 	}
 
 	@GetMapping("/logoutuser")

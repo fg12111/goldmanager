@@ -23,11 +23,13 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.support.DatabaseStartupValidator;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import jakarta.persistence.EntityManagerFactory;
 import liquibase.integration.spring.SpringLiquibase;
 
 @SpringBootApplication
+@EnableScheduling
 public class GoldmanagerApplication {
 
 	public static void main(String[] args) {

@@ -23,6 +23,7 @@ import com.my.goldmanager.service.entity.KeyInfo;
  */
 public interface AuthKeyInfoService {
 
+
 	/**
 	 * Returns a {@link KeyInfo} for specified username
 	 * 
@@ -30,6 +31,7 @@ public interface AuthKeyInfoService {
 	 * @return
 	 */
 	KeyInfo getKeyInfoForUserName(String username);
+
 
 	/**
 	 * Returns a {@link Key} for specified KeyId
@@ -39,15 +41,29 @@ public interface AuthKeyInfoService {
 	 */
 	Key getKeyforKeyId(String keyId);
 
+
 	/**
-	 * Remove KeyInfo for user
+	 * Forces the private key or specified username to be regenerated on next call
+	 * of {@link AuthKeyInfoService#getKeyInfoForUserName(String)}.
+	 * 
 	 * @param username
 	 */
-	void removeKeyInfoForUserName(String username);
-	
+	void invalidateKeyForUsername(String username);
+
 	/**
 	 * Remove all KeyInfos
 	 */
 	void clearAll();
 
+	/**
+	 * Remove KeyInfos for user
+	 * 
+	 * @param username
+	 */
+	void removeKeyInfosForUserName(String username);
+
+	/**
+	 * Clean up expired KeyInfos
+	 */
+	void cleanUpExpiredKeyInfos();
 }

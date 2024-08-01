@@ -17,6 +17,7 @@ package com.my.goldmanager.service;
 import java.util.Date;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -29,6 +30,10 @@ import io.jsonwebtoken.Jwts;
 
 @Service
 public class AuthenticationService {
+
+	@Value("${com.my.goldmanager.auth.jwtTokenValidity:7200000}") // Default: 2h
+	private long jwtTokenValidity;
+
 	@Autowired
 	private AuthenticationManager authenticationManager;
 
@@ -41,15 +46,25 @@ public class AuthenticationService {
 
 		User user = (User) authentication.getPrincipal();
 		KeyInfo keyInfo = authKeyInfoService.getKeyInfoForUserName(user.getUsername());
+		return buildJWTToken(user.getUsername(), keyInfo);
 
-		return Jwts.builder().header().add("keyId", keyInfo.getKeyId()).and().subject(user.getUsername())
-				.issuedAt(new Date()).expiration(new Date(System.currentTimeMillis() + 86400000)) // One Day
+	}
+
+	private String buildJWTToken(String username, KeyInfo keyInfo) {
+		return Jwts.builder().header().add("keyId", keyInfo.getKeyId()).and().subject(username)
+				.issuedAt(new Date()).expiration(new Date(System.currentTimeMillis() + jwtTokenValidity))
 				.signWith(keyInfo.getKey()).compact();
+	}
+
+	public String refresJWTToken(String username) {
+		KeyInfo keyInfo = authKeyInfoService.getKeyInfoForUserName(username);
+		return buildJWTToken(username, keyInfo);
+
 
 	}
 
 	public void logout(String username) {
-		authKeyInfoService.removeKeyInfoForUserName(username);
+		authKeyInfoService.removeKeyInfosForUserName(username);
 	}
 
 	public void logoutAll() {
